@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
+import { useLogout } from "@/utils/logout";
 
 const navItems = [
   { title: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -23,6 +25,8 @@ const navItems = [
 const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
+
+  const logout = useLogout();
 
   return (
     <>
@@ -89,6 +93,9 @@ const Sidebar = () => {
                 </NavLink>
               );
             })}
+            <Button onClick={logout} className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90">
+        Logout
+      </Button>
           </nav>
 
           {/* Status indicator */}

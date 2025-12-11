@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Fuel,
-  Gauge,
-  Activity,
+import { Progress } from "@/components/ui/progress";
+import { 
+  Fuel, 
+  Gauge, 
+  Activity, 
   Zap,
   Clock,
   Thermometer
@@ -43,7 +43,7 @@ const loadSplitData = [
   { name: "Reserve", value: 8, color: "hsl(var(--muted-foreground))" },
 ];
 
-const dailyFuelUsageData = [
+const dailyFuelUsage = [
   { day: "Mon", usage: 120 },
   { day: "Tue", usage: 145 },
   { day: "Wed", usage: 132 },
@@ -53,7 +53,7 @@ const dailyFuelUsageData = [
   { day: "Sun", usage: 88 },
 ];
 
-const fuelLevelHistoryInitial = [
+const fuelLevelHistory = [
   { time: "00:00", level: 100 },
   { time: "04:00", level: 92 },
   { time: "08:00", level: 78 },
@@ -64,44 +64,11 @@ const fuelLevelHistoryInitial = [
 ];
 
 const Equipment = () => {
+  const fuelRemaining = 38; // percentage
   const fuelCapacity = 1000; // liters
-  const avgDailyUsage = dailyFuelUsageData.reduce((sum, d) => sum + d.usage, 0) / 7;
-
-  const [fuelLiters, setFuelLiters] = useState(fuelCapacity);
-  const [fuelRemaining, setFuelRemaining] = useState(100);
-  const [fuelHistory, setFuelHistory] = useState(fuelLevelHistoryInitial);
-
-  // Simulate real-time fuel consumption
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFuelLiters(prev => {
-        const newFuel = Math.max(prev - Math.random() * 5, 0); // consume random 0-5L
-        const newPercent = (newFuel / fuelCapacity) * 100;
-        setFuelRemaining(newPercent);
-
-        // Update fuel history
-        setFuelHistory(prevHistory => {
-          const newHistory = [...prevHistory];
-          newHistory.push({ time: "Now", level: newPercent });
-          if (newHistory.length > 10) newHistory.shift(); // keep last 10 points
-          return newHistory.map((h, idx) => ({ ...h, time: idx === newHistory.length - 1 ? "Now" : h.time }));
-        });
-
-        return newFuel;
-      });
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
-
+  const fuelLiters = (fuelRemaining / 100) * fuelCapacity;
+  const avgDailyUsage = dailyFuelUsage.reduce((sum, d) => sum + d.usage, 0) / 7;
   const daysRemaining = Math.floor(fuelLiters / avgDailyUsage);
-
-  const fuelColor =
-    fuelRemaining > 50
-      ? "hsl(var(--success))"
-      : fuelRemaining > 25
-      ? "hsl(var(--warning))"
-      : "hsl(var(--destructive))";
 
   return (
     <Layout>
@@ -169,11 +136,11 @@ const Equipment = () => {
                       innerRadius={60}
                       outerRadius={100}
                       dataKey="value"
-                      label={({ value }) => `${value}%`}
+                      label={({ name, value }) => `${value}%`}
                       labelLine={false}
                     >
                       {loadSplitData.map((entry, index) => (
-                        <Cell key={index} fill={entry.color} />
+                        <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip 
@@ -210,7 +177,7 @@ const Equipment = () => {
             <CardContent>
               <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dailyFuelUsageData}>
+                  <BarChart data={dailyFuelUsage}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                     <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
@@ -253,7 +220,7 @@ const Equipment = () => {
                       cx="64"
                       cy="64"
                       r="56"
-                      stroke={fuelColor}
+                      stroke={fuelRemaining > 25 ? "hsl(var(--warning))" : "hsl(var(--destructive))"}
                       strokeWidth="12"
                       fill="none"
                       strokeDasharray={`${(fuelRemaining / 100) * 352} 352`}
@@ -262,7 +229,7 @@ const Equipment = () => {
                   </svg>
                   <div className="absolute flex flex-col items-center">
                     <Fuel className="h-6 w-6 text-warning mb-1" />
-                    <span className="text-2xl font-bold">{fuelRemaining.toFixed(0)}%</span>
+                    <span className="text-2xl font-bold">{fuelRemaining}%</span>
                   </div>
                 </div>
               </div>
@@ -290,13 +257,13 @@ const Equipment = () => {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="h-5 w-5 text-muted-foreground" />
-                Fuel Level History
+                Fuel Level Today
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={fuelHistory}>
+                  <AreaChart data={fuelLevelHistory}>
                     <defs>
                       <linearGradient id="fuelGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="hsl(var(--warning))" stopOpacity={0.3}/>
@@ -312,7 +279,7 @@ const Equipment = () => {
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "8px"
                       }}
-                      formatter={(value: number) => [`${value.toFixed(0)}%`, "Fuel Level"]}
+                      formatter={(value: number) => [`${value}%`, "Fuel Level"]}
                     />
                     <Area 
                       type="monotone" 
@@ -320,7 +287,6 @@ const Equipment = () => {
                       stroke="hsl(var(--warning))" 
                       strokeWidth={2}
                       fill="url(#fuelGradient)" 
-                      isAnimationActive={true}
                     />
                   </AreaChart>
                 </ResponsiveContainer>

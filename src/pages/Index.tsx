@@ -1,15 +1,56 @@
+import { useEffect, useState } from "react";
 import { Sun, Zap, Battery, Building, Activity } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import MeterCard from "@/components/dashboard/MeterCard";
-import EnvironmentCard from "@/components/dashboard/EnvironmentCard";
 import EnergyChart from "@/components/dashboard/EnergyChart";
 
+const INTERVAL_TIME = 5000;
+
 const Index = () => {
-  const environmentData = {
-    temperature: 32,
-    humidity: 65,
-    gasLevel: 180,
-  };
+  const [meters, setMeters] = useState([
+    { title: "Solar Power", value: 12.5, unit: "kW", icon: Sun, trend: "up", status: "normal" },
+    { title: "Grid Supply", value: 8.2, unit: "kW", icon: Zap, trend: "down", status: "normal" },
+    { title: "Generator", value: 0.0, unit: "kW", icon: Battery, trend: "stable", status: "normal" },
+    { title: "Building Load", value: 18.3, unit: "kW", icon: Building, trend: "up", status: "warning" },
+  ]);
+
+  // Energy chart data (in sync with meters)
+  const [energyData, setEnergyData] = useState([
+    {
+      time: new Date().toLocaleTimeString().slice(0, 5),
+      solar: meters[0].value,
+      grid: meters[1].value,
+      generator: meters[2].value,
+    },
+  ]);
+
+  // Simulate real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newSolar = Math.max(0, meters[0].value + (Math.random() * 2 - 1));
+      const newGrid = Math.max(0, meters[1].value + (Math.random() * 2 - 1));
+      const newGen = Math.max(0, meters[2].value + (Math.random() * 2 - 1));
+      const newBuilding = Math.max(0, meters[3].value + (Math.random() * 3 - 1.5));
+
+      setMeters([
+        { ...meters[0], value: newSolar, trend: newSolar > meters[0].value ? "up" : newSolar < meters[0].value ? "down" : "stable" },
+        { ...meters[1], value: newGrid, trend: newGrid > meters[1].value ? "up" : newGrid < meters[1].value ? "down" : "stable" },
+        { ...meters[2], value: newGen, trend: newGen > meters[2].value ? "up" : newGen < meters[2].value ? "down" : "stable" },
+        { ...meters[3], value: newBuilding, trend: newBuilding > meters[3].value ? "up" : newBuilding < meters[3].value ? "down" : "stable" },
+      ]);
+
+      const newEntry = {
+        time: new Date().toLocaleTimeString().slice(0, 5),
+        solar: newSolar,
+        grid: newGrid,
+        generator: newGen,
+      };
+
+      setEnergyData(prev => [...prev.slice(-6), newEntry]); // keep last 7 points
+    }, INTERVAL_TIME);
+
+    return () => clearInterval(interval);
+  }, [meters]);
 
   return (
     <Layout>
@@ -28,67 +69,21 @@ const Index = () => {
 
         {/* Meter Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          <MeterCard
-            title="Solar Power"
-            value="12.5"
-            unit="kW"
-            icon={Sun}
-            trend="up"
-            trendValue="+15% from yesterday"
-            status="normal"
-          />
-          <MeterCard
-            title="Grid Supply"
-            value="8.2"
-            unit="kW"
-            icon={Zap}
-            trend="down"
-            trendValue="-8% from yesterday"
-            status="normal"
-          />
-          <MeterCard
-            title="Generator"
-            value="0.0"
-            unit="kW"
-            icon={Battery}
-            trend="stable"
-            trendValue="Standby mode"
-            status="normal"
-          />
-          <MeterCard
-            title="Building Load"
-            value="18.3"
-            unit="kW"
-            icon={Building}
-            trend="up"
-            trendValue="+5% from yesterday"
-            status="warning"
-          />
+          {meters.map((m, i) => (
+            <MeterCard
+              key={i}
+              title={m.title}
+              value={m.value.toFixed(1)}
+              unit={m.unit}
+              icon={m.icon}
+              trend={m.trend as "up" | "down" | "stable"}
+              status={m.status as "normal" | "warning" | "critical"}
+            />
+          ))}
         </div>
 
-        {/* Charts and Environment Section */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2">
-            <EnergyChart />
-          </div>
-          <EnvironmentCard data={environmentData} />
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 rounded-xl border border-border bg-card gradient-card">
-            <h3 className="text-muted-foreground text-sm font-medium mb-2">Total Energy Today</h3>
-            <p className="text-3xl font-bold font-mono text-gradient">285.6 kWh</p>
-          </div>
-          <div className="p-6 rounded-xl border border-border bg-card gradient-card">
-            <h3 className="text-muted-foreground text-sm font-medium mb-2">Carbon Offset</h3>
-            <p className="text-3xl font-bold font-mono text-success">142.8 kg</p>
-          </div>
-          <div className="p-6 rounded-xl border border-border bg-card gradient-card">
-            <h3 className="text-muted-foreground text-sm font-medium mb-2">Cost Savings</h3>
-            <p className="text-3xl font-bold font-mono text-warning">$48.50</p>
-          </div>
-        </div>
+        {/* Energy Chart */}
+        <EnergyChart initialData={energyData} />
       </div>
     </Layout>
   );
