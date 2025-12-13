@@ -8,7 +8,7 @@ import {
   Activity,
   Zap,
   Clock,
-  Thermometer
+  Thermometer,
 } from "lucide-react";
 import {
   PieChart,
@@ -22,10 +22,12 @@ import {
   CartesianGrid,
   Tooltip,
   AreaChart,
-  Area
+  Area,
 } from "recharts";
 
-const generatorSpecs = {
+/* ------------------------------ CONSTANTS ------------------------------ */
+
+const GENERATOR = {
   model: "CAT C15 Generator",
   capacity: "500 kVA",
   fuelType: "Diesel",
@@ -35,7 +37,7 @@ const generatorSpecs = {
   temperature: 78,
 };
 
-const loadSplitData = [
+const LOAD_SPLIT = [
   { name: "Building A", value: 35, color: "hsl(var(--primary))" },
   { name: "Building B", value: 25, color: "hsl(var(--success))" },
   { name: "Building C", value: 20, color: "hsl(var(--warning))" },
@@ -43,7 +45,7 @@ const loadSplitData = [
   { name: "Reserve", value: 8, color: "hsl(var(--muted-foreground))" },
 ];
 
-const dailyFuelUsageData = [
+const DAILY_FUEL_USAGE = [
   { day: "Mon", usage: 120 },
   { day: "Tue", usage: 145 },
   { day: "Wed", usage: 132 },
@@ -53,7 +55,7 @@ const dailyFuelUsageData = [
   { day: "Sun", usage: 88 },
 ];
 
-const fuelLevelHistoryInitial = [
+const INITIAL_FUEL_HISTORY = [
   { time: "00:00", level: 100 },
   { time: "04:00", level: 92 },
   { time: "08:00", level: 78 },
@@ -63,45 +65,60 @@ const fuelLevelHistoryInitial = [
   { time: "Now", level: 38 },
 ];
 
+/* ------------------------------ COMPONENT ------------------------------ */
+
 const Equipment = () => {
-  const fuelCapacity = 1000; // liters
-  const avgDailyUsage = dailyFuelUsageData.reduce((sum, d) => sum + d.usage, 0) / 7;
+  const FUEL_CAPACITY = 1000; // liters
+  const avgDailyUsage =
+    DAILY_FUEL_USAGE.reduce((sum, d) => sum + d.usage, 0) / DAILY_FUEL_USAGE.length;
 
-  const [fuelLiters, setFuelLiters] = useState(fuelCapacity);
-  const [fuelRemaining, setFuelRemaining] = useState(100);
-  const [fuelHistory, setFuelHistory] = useState(fuelLevelHistoryInitial);
+  const [fuelLiters, setFuelLiters] = useState(FUEL_CAPACITY);
+  const [fuelPercent, setFuelPercent] = useState(100);
+  const [fuelHistory, setFuelHistory] = useState(INITIAL_FUEL_HISTORY);
 
-  // Simulate real-time fuel consumption
+  /* -------------------- Fuel Consumption Simulation -------------------- */
+
   useEffect(() => {
     const interval = setInterval(() => {
-      setFuelLiters(prev => {
-        const newFuel = Math.max(prev - Math.random() * 5, 0); // consume random 0-5L
-        const newPercent = (newFuel / fuelCapacity) * 100;
-        setFuelRemaining(newPercent);
+      setFuelLiters((prevFuel) => {
+        const consumption = Math.random() * 5; // 0–5L
+        const updatedFuel = Math.max(prevFuel - consumption, 0);
+        const updatedPercent = (updatedFuel / FUEL_CAPACITY) * 100;
 
-        // Update fuel history
-        setFuelHistory(prevHistory => {
-          const newHistory = [...prevHistory];
-          newHistory.push({ time: "Now", level: newPercent });
-          if (newHistory.length > 10) newHistory.shift(); // keep last 10 points
-          return newHistory.map((h, idx) => ({ ...h, time: idx === newHistory.length - 1 ? "Now" : h.time }));
+        setFuelPercent(updatedPercent);
+
+        setFuelHistory((prev) => {
+          const updated = [
+            ...prev.slice(-9), // keep last 9, push new
+            { time: "Now", level: updatedPercent },
+          ];
+
+          // Replace previous "Now" with timestamps if needed
+          return updated.map((item, idx) => ({
+            ...item,
+            time: idx === updated.length - 1 ? "Now" : item.time,
+          }));
         });
 
-        return newFuel;
+        return updatedFuel;
       });
     }, 3000);
 
     return () => clearInterval(interval);
   }, []);
 
+  /* ------------------------------ Computed ------------------------------ */
+
   const daysRemaining = Math.floor(fuelLiters / avgDailyUsage);
 
   const fuelColor =
-    fuelRemaining > 50
+    fuelPercent > 50
       ? "hsl(var(--success))"
-      : fuelRemaining > 25
-      ? "hsl(var(--warning))"
-      : "hsl(var(--destructive))";
+      : fuelPercent > 25
+        ? "hsl(var(--warning))"
+        : "hsl(var(--destructive))";
+
+  /* ------------------------------ Render ------------------------------ */
 
   return (
     <Layout>
@@ -109,52 +126,59 @@ const Equipment = () => {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Equipment</h1>
-          <p className="text-muted-foreground mt-1">Generator monitoring and fuel management</p>
+          <p className="text-muted-foreground mt-1">
+            Generator monitoring and fuel management
+          </p>
         </div>
 
         {/* Generator Overview */}
-        <Card className="bg-card border-border">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl flex items-center gap-2">
                 <Zap className="h-6 w-6 text-primary" />
-                {generatorSpecs.model}
+                {GENERATOR.model}
               </CardTitle>
+
               <Badge variant="secondary" className="bg-success/20 text-success border-success/30">
-                <Activity className="h-3 w-3 mr-1 animate-pulse" /> {generatorSpecs.status}
+                <Activity className="h-3 w-3 mr-1 animate-pulse" />
+                {GENERATOR.status}
               </Badge>
             </div>
           </CardHeader>
+
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-xs text-muted-foreground">Capacity</p>
-                <p className="text-lg font-bold">{generatorSpecs.capacity}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-xs text-muted-foreground">Fuel Type</p>
-                <p className="text-lg font-bold">{generatorSpecs.fuelType}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-xs text-muted-foreground">Runtime</p>
-                <p className="text-lg font-bold">{generatorSpecs.runtime}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-xs text-muted-foreground flex items-center gap-1"><Gauge className="h-3 w-3" /> Efficiency</p>
-                <p className="text-lg font-bold text-success">{generatorSpecs.efficiency}%</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                <p className="text-xs text-muted-foreground flex items-center gap-1"><Thermometer className="h-3 w-3" /> Temperature</p>
-                <p className="text-lg font-bold text-warning">{generatorSpecs.temperature}°C</p>
-              </div>
+              {[
+                ["Capacity", GENERATOR.capacity],
+                ["Fuel Type", GENERATOR.fuelType],
+                ["Runtime", GENERATOR.runtime],
+                [
+                  <span className="flex items-center gap-1">
+                    <Gauge className="h-3 w-3" /> Efficiency
+                  </span>,
+                  <span className="text-success">{GENERATOR.efficiency}%</span>,
+                ],
+                [
+                  <span className="flex items-center gap-1">
+                    <Thermometer className="h-3 w-3" /> Temperature
+                  </span>,
+                  <span className="text-warning">{GENERATOR.temperature}°C</span>,
+                ],
+              ].map(([label, value], i) => (
+                <div key={i} className="p-3 rounded-lg bg-muted/30 border">
+                  <p className="text-xs text-muted-foreground">{label}</p>
+                  <p className="text-lg font-bold">{value}</p>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Operating Load Split */}
-          <Card className="bg-card border-border">
+          {/* Load Split */}
+          <Card>
             <CardHeader>
               <CardTitle className="text-lg">Generator Operating Load Split</CardTitle>
             </CardHeader>
@@ -163,7 +187,7 @@ const Equipment = () => {
                 <ResponsiveContainer width="55%" height="100%">
                   <PieChart>
                     <Pie
-                      data={loadSplitData}
+                      data={LOAD_SPLIT}
                       cx="50%"
                       cy="50%"
                       innerRadius={60}
@@ -172,24 +196,28 @@ const Equipment = () => {
                       label={({ value }) => `${value}%`}
                       labelLine={false}
                     >
-                      {loadSplitData.map((entry, index) => (
-                        <Cell key={index} fill={entry.color} />
+                      {LOAD_SPLIT.map((entry, idx) => (
+                        <Cell key={idx} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))", 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
                         border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px"
+                        borderRadius: 8,
                       }}
-                      formatter={(value: number) => [`${value}%`, "Load"]}
+                      formatter={(value) => [`${value}%`, "Load"]}
                     />
                   </PieChart>
                 </ResponsiveContainer>
+
                 <div className="space-y-2">
-                  {loadSplitData.map((item, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                  {LOAD_SPLIT.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: item.color }}
+                      />
                       <span className="text-sm">{item.name}</span>
                       <span className="text-sm font-bold ml-auto">{item.value}%</span>
                     </div>
@@ -200,27 +228,28 @@ const Equipment = () => {
           </Card>
 
           {/* Daily Fuel Usage */}
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Fuel className="h-5 w-5 text-warning" />
                 Daily Fuel Usage (Liters)
               </CardTitle>
             </CardHeader>
+
             <CardContent>
               <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dailyFuelUsageData}>
+                  <BarChart data={DAILY_FUEL_USAGE}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))", 
+                    <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" />
+                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
                         border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px"
+                        borderRadius: 8,
                       }}
-                      formatter={(value: number) => [`${value}L`, "Fuel Used"]}
+                      formatter={(v) => [`${v}L`, "Fuel Used"]}
                     />
                     <Bar dataKey="usage" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -230,54 +259,58 @@ const Equipment = () => {
           </Card>
         </div>
 
-        {/* Fuel Remaining Section */}
+        {/* Fuel Remaining */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Fuel Tank Status */}
-          <Card className="bg-card border-border">
+          {/* Fuel Tank Gauge */}
+          <Card>
             <CardHeader>
               <CardTitle className="text-lg">Fuel Tank Status</CardTitle>
             </CardHeader>
+
             <CardContent className="space-y-4">
               <div className="text-center">
                 <div className="relative inline-flex items-center justify-center">
-                  <svg className="w-32 h-32 transform -rotate-90">
+                  <svg className="w-32 h-32 -rotate-90">
                     <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
+                      cx={64}
+                      cy={64}
+                      r={56}
                       stroke="hsl(var(--border))"
                       strokeWidth="12"
                       fill="none"
                     />
                     <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
+                      cx={64}
+                      cy={64}
+                      r={56}
                       stroke={fuelColor}
                       strokeWidth="12"
                       fill="none"
-                      strokeDasharray={`${(fuelRemaining / 100) * 352} 352`}
+                      strokeDasharray={`${(fuelPercent / 100) * 352} 352`}
                       className="transition-all duration-500"
                     />
                   </svg>
                   <div className="absolute flex flex-col items-center">
                     <Fuel className="h-6 w-6 text-warning mb-1" />
-                    <span className="text-2xl font-bold">{fuelRemaining.toFixed(0)}%</span>
+                    <span className="text-2xl font-bold">{fuelPercent.toFixed(0)}%</span>
                   </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">Remaining</span>
-                  <span className="font-medium">{fuelLiters.toFixed(0)}L / {fuelCapacity}L</span>
+                  <span className="font-medium">{fuelLiters.toFixed(0)}L / {FUEL_CAPACITY}L</span>
                 </div>
-                <div className="flex justify-between text-sm">
+
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">Avg. Daily Usage</span>
                   <span className="font-medium">{avgDailyUsage.toFixed(0)}L</span>
                 </div>
-                <div className="flex justify-between text-sm">
+
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">Est. Days Remaining</span>
-                  <span className={`font-bold ${daysRemaining < 3 ? 'text-destructive' : 'text-success'}`}>
+                  <span className={`font-bold ${daysRemaining < 3 ? "text-destructive" : "text-success"}`}>
                     {daysRemaining} days
                   </span>
                 </div>
@@ -285,42 +318,54 @@ const Equipment = () => {
             </CardContent>
           </Card>
 
-          {/* Fuel Level Trend */}
-          <Card className="bg-card border-border lg:col-span-2">
+          {/* Fuel Trend */}
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="h-5 w-5 text-muted-foreground" />
                 Fuel Level History
               </CardTitle>
             </CardHeader>
+
             <CardContent>
               <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={fuelHistory}>
                     <defs>
                       <linearGradient id="fuelGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--warning))" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(var(--warning))" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="hsl(var(--warning))" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(var(--warning))" stopOpacity={0} />
                       </linearGradient>
                     </defs>
+
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))", 
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px"
-                      }}
-                      formatter={(value: number) => [`${value.toFixed(0)}%`, "Fuel Level"]}
+
+                    <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
+                    <YAxis
+                      stroke="hsl(var(--muted-foreground))"
+                      domain={[0, 100]}
+                      tickFormatter={(v) => `${v}%`}
                     />
-                    <Area 
-                      type="monotone" 
-                      dataKey="level" 
-                      stroke="hsl(var(--warning))" 
+
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 8,
+                      }}
+                      // formatter={(value) => [`${value.toFixed(0)}%`, "Fuel Level"]}
+                      formatter={(value) => {
+                        const num = typeof value === "number" ? value : Number(value) || 0;
+                        return [`${num.toFixed(0)}%`, "Fuel Level"];
+                      }}
+                    />
+
+                    <Area
+                      type="monotone"
+                      dataKey="level"
+                      stroke="hsl(var(--warning))"
                       strokeWidth={2}
-                      fill="url(#fuelGradient)" 
-                      isAnimationActive={true}
+                      fill="url(#fuelGradient)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>

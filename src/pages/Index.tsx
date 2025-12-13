@@ -3,6 +3,7 @@ import { Sun, Zap, Battery, Building, Activity } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import MeterCard from "@/components/dashboard/MeterCard";
 import EnergyChart from "@/components/dashboard/EnergyChart";
+import { useRandomAlert } from "@/hooks/use-random-alert";
 
 const INTERVAL_TIME = 5000;
 
@@ -51,6 +52,8 @@ const Index = () => {
 
     return () => clearInterval(interval);
   }, [meters]);
+
+  useRandomAlert(10000);
 
   return (
     <Layout>

@@ -13,63 +13,67 @@ import Signup from "./pages/Signup";
 import PrivateRoute from "./ProtectedRoute";
 import Index from "./pages/Index";
 import { UnprotectedRoute } from "./UnProtectedRoute";
+import { Toaster as HotToaster } from "react-hot-toast";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Index />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/utility"
-            element={
-              <PrivateRoute>
-                <Utility />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/reports"
-            element={
-              <PrivateRoute>
-                <Reports />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/maintenance"
-            element={
-              <PrivateRoute>
-                <MaintenanceCost />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/equipment"
-            element={
-              <PrivateRoute>
-                <Equipment />
-              </PrivateRoute>
-            }
-          />
-          <Route path="/login" element={<UnprotectedRoute><Login /></UnprotectedRoute>} />
-          <Route path="/signup" element={<UnprotectedRoute><Signup /></UnprotectedRoute>} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <Index />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/utility"
+              element={
+                <PrivateRoute>
+                  <Utility />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <PrivateRoute>
+                  <Reports />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/maintenance"
+              element={
+                <PrivateRoute>
+                  <MaintenanceCost />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/equipment"
+              element={
+                <PrivateRoute>
+                  <Equipment />
+                </PrivateRoute>
+              }
+            />
+            <Route path="/login" element={<UnprotectedRoute><Login /></UnprotectedRoute>} />
+            <Route path="/signup" element={<UnprotectedRoute><Signup /></UnprotectedRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+    <HotToaster position="top-right" reverseOrder={false} />
+  </>
 );
 
 export default App;
